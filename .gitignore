@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+# Bases SQLite générées à l'exécution (données simulées)
+data/*.db
+data/*.db-wal
+data/*.db-shm

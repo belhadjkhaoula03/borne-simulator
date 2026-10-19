@@ -1,0 +1,22 @@
+# À adapter : nom d'hôte, classe d'ingress, TLS (cert-manager). Sans ingress :
+#   kubectl -n borne port-forward svc/borne-app 8080:80
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: borne-app
+  annotations:
+    # Le flux temps réel (SSE) ne doit être ni bufferisé ni coupé par le proxy.
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: bornes.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: borne-app
+                port: {name: http}

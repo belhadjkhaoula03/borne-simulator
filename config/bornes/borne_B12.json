@@ -1,0 +1,33 @@
+{
+  "id_borne": "B12",
+  "hote": "localhost",
+  "port": 1883,
+  "identifiants": {
+    "username": "",
+    "password": ""
+  },
+  "ressources": [
+    "ELECTRICITE",
+    "EAU",
+    "GAZ"
+  ],
+  "intervalle_releve": 12,
+  "id_reservation": "RES-B12-042",
+  "profil_simulation": {
+    "ELECTRICITE": {
+      "min": 0.2,
+      "max": 6.0,
+      "prix_unitaire_simule": 0.19
+    },
+    "EAU": {
+      "min": 0.5,
+      "max": 6.0,
+      "prix_unitaire_simule": 0.004
+    },
+    "GAZ": {
+      "min": 0.1,
+      "max": 2.0,
+      "prix_unitaire_simule": 0.82
+    }
+  }
+}

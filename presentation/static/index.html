@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Portail client — Bornes du port</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230b6e8a'/%3E%3Cpath d='M17 6l-1 12h-4l5-12zM8 21h16l-3 4H11z' fill='white'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo" aria-hidden="true"></span>
+      <div>
+        <h1>Portail client</h1>
+        <p>Bornes de services — port de plaisance</p>
+      </div>
+    </div>
+    <div id="live" class="pill pill-wait" role="status" aria-live="polite">
+      <span class="dot"></span><span id="live-text">Connexion…</span>
+    </div>
+  </header>
+
+  <main>
+    <section class="kpis" aria-label="Synthèse">
+      <article class="kpi"><span class="kpi-label">Bornes en ligne</span><strong id="kpi-online">—</strong></article>
+      <article class="kpi"><span class="kpi-label">Coût cumulé (simulé)</span><strong id="kpi-cost">—</strong></article>
+      <article class="kpi"><span class="kpi-label">Dernier relevé</span><strong id="kpi-last">—</strong></article>
+    </section>
+
+    <section id="grid" class="grid" aria-label="Bornes"></section>
+    <p id="empty" class="muted center" hidden>Aucune borne configurée.</p>
+  </main>
+
+  <footer class="footer">
+    <p id="sys">Chargement de l’état du système…</p>
+    <p class="muted">Toutes les données affichées sont simulées : aucun matériel n’est connecté.</p>
+  </footer>
+
+  <div id="toast" class="toast" role="alert" hidden></div>
+  <script src="/static/app.js"></script>
+</body>
+</html>

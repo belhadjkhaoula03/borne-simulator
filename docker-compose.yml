@@ -1,0 +1,33 @@
+# Lancement local : docker compose up --build   puis   http://localhost:8080
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2.0.20
+    volumes:
+      - ./docker/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    ports:
+      - "127.0.0.1:1883:1883"      # pratique pour mosquitto_sub en local, jamais exposé au réseau
+    healthcheck:
+      test: ["CMD-SHELL", "mosquitto_sub -h 127.0.0.1 -t '$$SYS/broker/uptime' -C 1 -W 3 >/dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  app:
+    image: ${APP_IMAGE:-borne-simulator:local}
+    build: .
+    depends_on:
+      mosquitto:
+        condition: service_healthy
+    environment:
+      MQTT_HOST: mosquitto          # prioritaire sur "localhost" des fichiers JSON de bornes
+      MQTT_PORT: "1883"
+      LOG_LEVEL: INFO
+    ports:
+      - "8080:8080"
+    volumes:
+      - borne-data:/data            # bases SQLite persistantes
+    restart: unless-stopped
+
+volumes:
+  borne-data:

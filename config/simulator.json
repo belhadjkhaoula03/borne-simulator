@@ -1,0 +1,10 @@
+{
+  "nombre_bornes": 3,
+  "bornes": ["A07", "B12", "C03"],
+  "broker": {
+    "hote": "localhost",
+    "port": 1883
+  },
+  "intervalle_releve_defaut": 10,
+  "niveau_log": "INFO"
+}
