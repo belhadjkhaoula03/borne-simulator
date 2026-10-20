@@ -8,5 +8,5 @@ resources:
   - ingress.yaml
 images:
   - name: borne-simulator
-    newName: ghcr.io/OWNER/borne-simulator   # la CI le remplace par l'image@digest qu'elle vient de construire
-    newTag: latest
+    newName: ghcr.io/belhadjkhaoula03/borne-simulator
+    newTag: sha-e3614a7

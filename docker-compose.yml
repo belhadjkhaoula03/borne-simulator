@@ -1,11 +1,10 @@
-# Lancement local : docker compose up --build   puis   http://localhost:8080
 services:
   mosquitto:
     image: eclipse-mosquitto:2.0.20
     volumes:
       - ./docker/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
     ports:
-      - "127.0.0.1:1883:1883"      # pratique pour mosquitto_sub en local, jamais exposé au réseau
+      - "127.0.0.1:1883:1883"
     healthcheck:
       test: ["CMD-SHELL", "mosquitto_sub -h 127.0.0.1 -t '$$SYS/broker/uptime' -C 1 -W 3 >/dev/null"]
       interval: 5s
@@ -14,19 +13,19 @@ services:
     restart: unless-stopped
 
   app:
-    image: ${APP_IMAGE:-borne-simulator:local}
-    build: .
+    image: ghcr.io/belhadjkhaoula03/borne-simulator:sha-e3614a7
+    pull_policy: always
     depends_on:
       mosquitto:
         condition: service_healthy
     environment:
-      MQTT_HOST: mosquitto          # prioritaire sur "localhost" des fichiers JSON de bornes
+      MQTT_HOST: mosquitto
       MQTT_PORT: "1883"
       LOG_LEVEL: INFO
     ports:
       - "8080:8080"
     volumes:
-      - borne-data:/data            # bases SQLite persistantes
+      - borne-data:/data
     restart: unless-stopped
 
 volumes:

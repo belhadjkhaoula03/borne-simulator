@@ -43,7 +43,7 @@ spec:
       containers:
         - name: app
           image: borne-simulator          # remplacé par kustomize (images:) avec le digest construit par la CI
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           ports:
             - {name: http, containerPort: 8080}
           envFrom:
