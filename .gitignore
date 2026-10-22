@@ -5,7 +5,6 @@ __pycache__/
 .ruff_cache/
 .coverage
 coverage.xml
-# Bases SQLite générées à l'exécution (données simulées)
 data/*.db
 data/*.db-wal
 data/*.db-shm

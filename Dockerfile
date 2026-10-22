@@ -24,7 +24,6 @@ COPY infrastructure ./infrastructure
 COPY presentation ./presentation
 COPY config ./config
 
-# Utilisateur non-root ; /data accueille les bases SQLite (volume).
 RUN useradd --uid 10001 --no-create-home --shell /usr/sbin/nologin app \
     && mkdir /data && chown 10001:10001 /data
 USER 10001:10001
