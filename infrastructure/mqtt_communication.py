@@ -7,6 +7,7 @@ from typing import Callable
 from paho.mqtt import client as mqtt
 
 from domaine.interfaces import ICommunication
+from infrastructure.paho_compat import creer_client
 
 log = logging.getLogger(__name__)
 
@@ -30,10 +31,7 @@ class MqttCommunication(ICommunication):
         self._handler: Callable[[str, str], None] | None = None
         self._connected = False
 
-        self._client = mqtt.Client(
-            callback_api_version=mqtt.CallbackAPIVersion.VERSION2,
-            client_id=f"borne_{id_borne}",
-        )
+        self._client = creer_client(f"borne_{id_borne}")
 
         if username is not None:
             self._client.username_pw_set(username, password)
@@ -153,7 +151,7 @@ class MqttCommunication(ICommunication):
         userdata,
         flags,
         reason_code,
-        properties,
+        properties=None,
     ) -> None:
         if reason_code == 0:
             self._connected = True
@@ -199,10 +197,10 @@ class MqttCommunication(ICommunication):
         self,
         client: mqtt.Client,
         userdata,
-        disconnect_flags,
-        reason_code,
-        properties,
+        *args,
     ) -> None:
+        # paho 1.x : (rc,)   |   paho 2.x : (flags, reason_code, properties)
+        reason_code = args[1] if len(args) >= 3 else (args[0] if args else 0)
         self._connected = False
 
         if self._on_status_change is not None:

@@ -13,6 +13,8 @@ from datetime import datetime, timezone
 
 from paho.mqtt import client as mqtt
 
+from infrastructure.paho_compat import creer_client
+
 log = logging.getLogger(__name__)
 
 COMMANDES = ("activer", "couper")
@@ -25,8 +27,7 @@ class EtatLive:
         self._bornes: dict[str, dict] = {}
         self._version = 0
         self._connecte = False
-        self._client = mqtt.Client(callback_api_version=mqtt.CallbackAPIVersion.VERSION2,
-                                   client_id=f"portail_{uuid.uuid4().hex[:8]}")
+        self._client = creer_client(f"portail_{uuid.uuid4().hex[:8]}")
         if username:
             self._client.username_pw_set(username, password)
         self._client.reconnect_delay_set(min_delay=1, max_delay=30)
@@ -70,7 +71,7 @@ class EtatLive:
         return correlation
 
     # ---------------------------------------------------------------- callbacks
-    def _on_connect(self, client, userdata, flags, reason_code, properties) -> None:
+    def _on_connect(self, client, userdata, flags, reason_code, properties=None) -> None:
         if reason_code == 0:
             self._connecte = True
             client.subscribe([("port/bornes/+/etat", 1), ("port/bornes/+/telemetrie", 1),
@@ -78,7 +79,7 @@ class EtatLive:
             log.info("Portail connecté au broker MQTT.")
         self._bump()
 
-    def _on_disconnect(self, client, userdata, flags, reason_code, properties) -> None:
+    def _on_disconnect(self, client, userdata, *args) -> None:
         self._connecte = False
         self._bump()
 
