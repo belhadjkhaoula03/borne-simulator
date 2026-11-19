@@ -1,7 +1,9 @@
 from datetime import datetime, time, timezone
+
 import pytest
-from domaine.entites import QuantiteEnergie, TarifHoraire, PlageHoraire
+
 from business.calculateur_montant import CalculateurMontant
+from domaine.entites import PlageHoraire, QuantiteEnergie, TarifHoraire
 
 # 0,30 €/kWh en heures pleines, 0,20 €/kWh en heures creuses (22h -> 6h)
 TARIF = TarifHoraire(0.30, 0.20, (PlageHoraire(time(22, 0), time(6, 0)),))

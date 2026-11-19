@@ -2,7 +2,7 @@
 import logging
 from datetime import datetime, time
 
-from domaine.entites import PlageHoraire, TarifHoraire, ReservationCreneau
+from domaine.entites import PlageHoraire, ReservationCreneau, TarifHoraire
 from domaine.proprietes_desirees import ProprietesDesirees
 
 log = logging.getLogger(__name__)

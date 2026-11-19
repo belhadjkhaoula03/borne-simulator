@@ -129,7 +129,7 @@ class QuantiteEnergie:
     def __post_init__(self):
         if self.kwh < 0:
             raise ValueError("L'énergie ne peut pas être négative")
-        
+
 
 @dataclass
 class ConsommationSession:

@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Callable, Protocol
 
-from domaine.entites import TarifHoraire, ReservationCreneau
+from domaine.entites import ReservationCreneau, TarifHoraire
 
 
 @dataclass(frozen=True)

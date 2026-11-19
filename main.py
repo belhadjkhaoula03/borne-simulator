@@ -18,9 +18,9 @@ from pathlib import Path
 RACINE = Path(__file__).resolve().parent
 sys.path.insert(0, str(RACINE))
 
-from business.calculator import Calculator  # noqa: E402
-from business.calculator import CalculateurMontant  # noqa: E402
 from business.acces_borne import AccesBorne  # noqa: E402
+from business.calculateur_montant import CalculateurMontant  # noqa: E402
+from business.calculator import Calculator  # noqa: E402
 from business.cycle_telemetrie import CycleTelemetrie  # noqa: E402
 from business.gestionnaire_borne import GestionnaireBorne  # noqa: E402
 from business.rapporter_etat import RapporterEtat  # noqa: E402
