@@ -53,5 +53,5 @@ def test_priorite_variables_d_environnement_sur_fichiers():
 
 def test_settings_defauts_et_booleens():
     s = Settings.from_env({"WEB_ENABLED": "false", "WEB_PORT": "9000", "DATA_DIR": "/d"})
-    assert not s.web_enabled and s.web_port == 9000 and str(s.data_dir) == "/d"
+    assert not s.web_enabled and s.web_port == 9000 and s.data_dir.as_posix() == "/d"
     assert Settings.from_env({}).web_enabled

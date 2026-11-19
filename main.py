@@ -18,12 +18,24 @@ from pathlib import Path
 RACINE = Path(__file__).resolve().parent
 sys.path.insert(0, str(RACINE))
 
+from business.acces_borne import AccesBorne  # noqa: E402
+from business.calculateur_montant import CalculateurMontant  # noqa: E402
 from business.calculator import Calculator  # noqa: E402
+from business.cycle_telemetrie import CycleTelemetrie  # noqa: E402
 from business.gestionnaire_borne import GestionnaireBorne  # noqa: E402
+from business.rapporter_etat import RapporterEtat  # noqa: E402
+from domaine.entites import Borne  # noqa: E402
 from infrastructure.config_file import ConfigFileDAO, ConfigurationInvalide  # noqa: E402
+from infrastructure.connexion_iothub import ConnexionIoTHub  # noqa: E402
 from infrastructure.dao_sqlite import DaoSqlite  # noqa: E402
+from infrastructure.mesureur_simule import MesureurSimule  # noqa: E402
 from infrastructure.mqtt_communication import MqttCommunication  # noqa: E402
+from infrastructure.recepteur_twin_iothub import RecepteurTwinIoTHub  # noqa: E402
 from infrastructure.settings import Settings  # noqa: E402
+from infrastructure.telemetrie_iothub import (  # noqa: E402
+    RapporteurEtatIoTHub,
+    TelemetrieIoTHub,
+)
 
 MAX_BORNES = 5
 log = logging.getLogger("BorneSimulator")
@@ -139,6 +151,54 @@ def demarrer_portail(settings: Settings, config_globale: dict,
     return serveur, thread
 
 
+def demarrer_telemetrie_iothub(arret: threading.Event):
+    """Démarre le cycle IoT Hub lorsqu'une connexion est configurée."""
+    intervalle = int(os.environ.get("TELEMETRIE_INTERVALLE_SECONDES", "10"))
+    if intervalle <= 0:
+        raise ValueError("TELEMETRIE_INTERVALLE_SECONDES doit être supérieur à zéro")
+
+    connexion = ConnexionIoTHub()
+    try:
+        connexion.connecter()
+        client = connexion.client
+        borne = Borne("borne-001")
+        acces = AccesBorne(borne)
+        rapporter_etat = RapporterEtat(acces, RapporteurEtatIoTHub(client))
+
+        def appliquer_proprietes(proprietes):
+            def appliquer(borne_locale):
+                borne_locale.tarif = proprietes.tarif
+                borne_locale.remplacer_reservations(proprietes.reservations)
+
+            acces.executer(appliquer)
+            rapporter_etat.executer(proprietes.version)
+
+        RecepteurTwinIoTHub(client).demarrer(appliquer_proprietes)
+        cycle = CycleTelemetrie(
+            acces,
+            MesureurSimule(),
+            CalculateurMontant(),
+            TelemetrieIoTHub(client, "borne-001"),
+            rapporter_etat,
+            intervalle,
+        )
+
+        def boucle():
+            while not arret.wait(intervalle):
+                try:
+                    cycle.executer()
+                except Exception:
+                    log.exception("Erreur ponctuelle, la borne continue")
+
+        thread = threading.Thread(target=boucle, name="Telemetrie-IoTHub", daemon=True)
+        thread.start()
+        log.info("Module de télémétrie prêt, en attente de réservation")
+        return connexion, thread
+    except Exception:
+        connexion.deconnecter()
+        raise
+
+
 def main() -> None:
     settings = Settings.from_env()
     logging.basicConfig(level=logging.INFO,
@@ -168,7 +228,11 @@ def main() -> None:
     signal.signal(signal.SIGTERM, lambda *_: arret.set())
     signal.signal(signal.SIGINT, lambda *_: arret.set())
     serveur = None
+    connexion_iothub = None
+    thread_telemetrie = None
     try:
+        if os.environ.get("IOTHUB_DEVICE_CONNECTION_STRING"):
+            connexion_iothub, thread_telemetrie = demarrer_telemetrie_iothub(arret)
         if settings.web_enabled:
             log.info("Portail client : http://%s:%d", settings.web_host, settings.web_port)
             serveur, thread_web = demarrer_portail(settings, config_globale, gestionnaires)
@@ -180,6 +244,10 @@ def main() -> None:
     finally:
         log.info("Arrêt demandé : signal envoyé aux %d thread(s)...", len(gestionnaires))
         arret.set()
+        if thread_telemetrie is not None:
+            thread_telemetrie.join(timeout=5)
+        if connexion_iothub is not None:
+            connexion_iothub.deconnecter()
         if serveur is not None:
             serveur.should_exit = True
             thread_web.join(timeout=10)
