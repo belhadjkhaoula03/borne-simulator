@@ -1,14 +1,9 @@
-"""Entités du domaine du simulateur de bornes énergétiques.
-
-Ces dataclasses ne dépendent de RIEN (ni paho-mqtt, ni sqlite3) : c'est le
-centre de l'architecture en oignons. Elles sont issues du diagramme de
-classes manuscrit du projet.
-"""
 from __future__ import annotations
 
 import enum
+import uuid
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, time, timedelta
 from typing import List
 
 
@@ -79,3 +74,133 @@ class Config:
     identifiants: dict = field(default_factory=dict)
     ressources: List[str] = field(default_factory=list)
     intervalle_releve: int = 10
+# ---------------------------------------------------------------------------
+# Modèle IoT Hub (TP) : tarif heures pleines/creuses, créneaux du Twin, Borne
+# ---------------------------------------------------------------------------
+
+class EtatBorne(enum.Enum):
+    ACTIVE = "Active"
+    INACTIVE = "Inactive"
+
+
+@dataclass(frozen=True)
+class PlageHoraire:
+    """Plage horaire [debut, fin[ ; gère le passage de minuit (22:00 -> 06:00)."""
+    debut: time
+    fin: time
+
+    def contient(self, h: time) -> bool:
+        if self.debut <= self.fin:
+            return self.debut <= h < self.fin
+        return h >= self.debut or h < self.fin
+
+
+@dataclass(frozen=True)
+class TarifHoraire:
+    """Tarif heures pleines / heures creuses reçu par le Device Twin."""
+    prix_pleines: float
+    prix_creuses: float
+    plages_creuses: tuple = ()
+
+    def prix_a(self, h: time) -> float:
+        creuse = any(p.contient(h) for p in self.plages_creuses)
+        return self.prix_creuses if creuse else self.prix_pleines
+
+
+@dataclass(frozen=True)
+class ReservationCreneau:
+    """Réservation telle que décrite dans le Twin (debut + dureeMinutes)."""
+    id: str
+    client_id: str
+    debut: datetime          # avec fuseau horaire
+    duree_minutes: float
+
+    @property
+    def fin(self) -> datetime:
+        return self.debut + timedelta(minutes=self.duree_minutes)
+
+    def est_active(self, instant: datetime) -> bool:
+        return self.debut <= instant < self.fin
+
+# domaine/entites.py
+@dataclass(frozen=True)
+class QuantiteEnergie:
+    kwh: float
+    def __post_init__(self):
+        if self.kwh < 0:
+            raise ValueError("L'énergie ne peut pas être négative")
+        
+
+@dataclass
+class ConsommationSession:
+    type_energie: str
+    energie_kwh: float
+    duree_minutes: float
+    debut: datetime
+    fin: datetime
+    tarif_applique: float
+    montant: float
+
+
+@dataclass
+class SessionRecharge:
+    id: str
+    client_id: str
+    reservation_id: str
+    debut: datetime
+    consommations: list[ConsommationSession] = field(default_factory=list)
+
+    @property
+    def montant_total(self) -> float:
+        return round(sum(c.montant for c in self.consommations), 3)
+
+
+class Borne:
+    """État de la borne partagé entre le thread du simulateur et la
+    réception du Twin (l'accès concurrent est protégé par AccesBorne)."""
+
+    def __init__(self, id_borne: str):
+        self.id = id_borne
+        self.etat = EtatBorne.ACTIVE
+        self.tarif: TarifHoraire | None = None
+        self.reservations: list[ReservationCreneau] = []
+        self.session: SessionRecharge | None = None
+
+    def appliquer_tarif(self, tarif: TarifHoraire) -> None:
+        self.tarif = tarif
+
+    def remplacer_reservations(self, reservations) -> None:
+        self.reservations = list(reservations)
+
+    def reservation_active(self, instant: datetime):
+        return next((r for r in self.reservations if r.est_active(instant)), None)
+
+    def demarrer_session(self, reservation, instant: datetime) -> SessionRecharge:
+        if self.etat != EtatBorne.ACTIVE:
+            raise ValueError("Borne désactivée")
+        if not reservation.est_active(instant):
+            raise ValueError("Réservation non active")
+        self.session = SessionRecharge(
+            f"S-{uuid.uuid4().hex[:8]}",
+            reservation.client_id,
+            reservation.id,
+            instant,
+        )
+        return self.session
+
+    def terminer_session(self) -> SessionRecharge | None:
+        session, self.session = self.session, None
+        return session
+
+    def activer(self) -> bool:
+        if self.etat == EtatBorne.ACTIVE:
+            return False
+        self.etat = EtatBorne.ACTIVE
+        return True
+
+    def desactiver(self) -> bool:
+        if self.etat == EtatBorne.INACTIVE:
+            return False
+        self.etat = EtatBorne.INACTIVE
+        self.terminer_session()
+        return True
